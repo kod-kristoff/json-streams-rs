@@ -1,3 +1,6 @@
+
+mod json_lines;
+
 #[cfg(test)]
 mod tests {
     #[test]
