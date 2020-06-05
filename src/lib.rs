@@ -1,5 +1,5 @@
 
-mod json_lines;
+pub mod json_lines;
 
 #[cfg(test)]
 mod tests {
