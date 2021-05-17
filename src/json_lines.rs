@@ -3,8 +3,9 @@ use std::{
     io::{self, prelude::*},
     rc::Rc
 };
+use serde_json::{Value, Error};
 
-pub struct JsonLinesReader<T: io::BufRead> {
+pub struct JsonLinesReader<T> {
     pub reader: T,
     pub buf: Rc<String>,
 }
@@ -13,18 +14,18 @@ fn new_buf() -> Rc<String> {
     Rc::new(String::with_capacity(1024))
 }
 
-// impl<T: io::BufRead> JsonLinesReader<T> {
-//     pub fn open(path: impl AsRef<std::path::Path>) -> std::io::Result<Self> {
-//         let file = File::open(path)?;
-//         let reader = io::BufReader::new(file);
-//         let buf = new_buf();
+impl<T: io::BufRead> JsonLinesReader<T> {
+    pub fn open(path: impl AsRef<std::path::Path>) -> std::io::Result<Self> {
+        let file = File::open(path)?;
+        let reader = io::BufReader::new(file);
+        let buf = new_buf();
+        Ok(Self { reader, buf })
+    }
+}
 
-//         Ok(Self { reader, buf })
-//     }
-// }
 
 impl<T: io::BufRead> Iterator for JsonLinesReader<T> {
-    type Item = Rc<String>;
+    type Item = Value;
 
     fn next(&mut self) -> Option<Self::Item> {
         let buffer: &mut String = match Rc::get_mut(&mut self.buf) {
@@ -45,26 +46,39 @@ impl<T: io::BufRead> Iterator for JsonLinesReader<T> {
         //     .map(|u| if u == 0 { None } else { Some(Rc::clone(&self.buf)) })
             // .transpose()
         match self.reader.read_line(buffer) {
-            Ok(n) if n > 0 => Some(Rc::clone(&self.buf)),
+            Ok(n) if n > 0 => {
+                let row = Rc::clone(&self.buf);
+                match serde_json::from_str(&row) {
+                    Ok(value) => Some(value),
+                    Err(err) => panic!("error: {}", err)
+
+                }
+            },
             _ => None
         }
+
     }
 }
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::json;
 
 
     #[test]
     fn create_json_lines_reader() {
-        let data = "a\na\n".as_bytes();
+        let data = "{\"a\":1}\n{\"a\":1}\n".as_bytes();
 
         let json_lines_reader = JsonLinesReader {
             reader: io::BufReader::new(data),
             buf: Default::default(),
         };
+        let expected = json!({
+            "a": 1
+        });
         for v in json_lines_reader {
-            assert_eq!(*v.trim(), "a".to_owned());
+            assert_eq!(v, expected);
         }
     }
 }
