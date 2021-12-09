@@ -1,9 +1,10 @@
 use serde_json::{Error, Value};
 use std::{
-    fs::File,
+    fs,
     io::{self, prelude::*},
     rc::Rc,
 };
+use simple_lines::ReadExt;
 
 pub struct JsonLinesReader<T> {
     pub reader: T,
@@ -14,15 +15,36 @@ fn new_buf() -> Rc<String> {
     Rc::new(String::with_capacity(1024))
 }
 
-impl<T: io::BufRead> JsonLinesReader<T> {
-    pub fn open(path: impl AsRef<std::path::Path>) -> std::io::Result<Self> {
-        let file = File::open(path)?;
-        let reader = io::BufReader::new(file);
-        let buf = new_buf();
-        Ok(Self { reader, buf })
-    }
+// impl<T: io::BufRead> JsonLinesReader<T> {
+//     pub fn open(path: impl AsRef<std::path::Path>) -> std::io::Result<Self> {
+//         let file = File::open(path)?;
+//         let reader = io::BufReader::new(file);
+//         let buf = new_buf();
+//         Ok(Self { reader, buf })
+//     }
+// }
+
+pub fn load_from_file(path: impl AsRef<std::path::Path>) -> io::Result<JsonLinesIterator> 
+{
+    let lines = Box::new(fs::File::open(path)?.lines_rc());
+    Ok(JsonLinesIterator { lines })
 }
 
+pub struct JsonLinesIterator {
+    lines: Box<dyn Iterator<Item = Result<Rc<String>, simple_lines::Error<Rc<String>>>>>,
+}
+
+impl Iterator for JsonLinesIterator {
+    type Item = Result<Rc<String>, simple_lines::Error<Rc<String>>>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self.lines.next() {
+            Ok(line) => {
+
+            } 
+        }
+    }
+}
 impl<T: io::BufRead> Iterator for JsonLinesReader<T> {
     type Item = Value;
 

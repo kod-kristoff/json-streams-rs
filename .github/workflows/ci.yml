@@ -1,0 +1,53 @@
+name: CI
+
+permissions:
+  contents: read
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+      - staging    # Causes CI to run when Bors pushes to staging
+      - trying     # Causes CI to run when Bors pushes to trying (bors try)
+
+jobs:
+  build:
+    name: ${{ matrix.task.name }} (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        rust: [stable]
+        task:
+          - name: Format
+            run: make check-rustfmt
+          - name: Clippy
+            run: make check-clippy
+          - name: Build
+            run: cargo build
+          - name: Test
+            run: make run-all-tests
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install Rust ${{ matrix.rust }}
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ matrix.rust }}
+          profile: minimal
+          override: true
+          components: rustfmt, clippy
+
+      - name: ${{ matrix.task.name }}
+        run: ${{ matrix.task.run }}
+
+  # This job should depend on all required jobs.
+  # We will make Bors watch this job to tell whether to merge or not.
+  done:
+    name: Done
+    needs: [build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Done
+        run: echo Done
