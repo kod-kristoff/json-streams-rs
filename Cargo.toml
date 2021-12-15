@@ -1,10 +1,15 @@
 [package]
 name = "json-streams"
-version = "0.1.0"
-authors = ["Kristoffer Andersson <6058164+kod-kristoff@users.noreply.github.com>"]
-edition = "2018"
+version = "0.0.1"
+edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-serde_json = "1.0"
+log = "0.4.14"
+nom = { version = "7", features = ["alloc"] }
+nom-bufreader = { git = "https://github.com/rust-bakery/nom-bufreader" }
+serde_json = "1.0.64"
+
+[dev-dependencies]
+rstest = "0.12"
