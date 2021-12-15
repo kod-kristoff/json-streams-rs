@@ -1,32 +1,29 @@
-use std::collections::HashMap;
-use std::str::from_utf8;
+use crate::JsonValue;
 use nom::{
     branch::alt,
     bytes::streaming::{escaped, is_not, tag, take_while},
     character::streaming::{alphanumeric1, char, one_of},
     combinator::{cut, map, map_res, value, verify},
     error::context,
-    number::streaming::double,
     multi::{fold_many0, separated_list0},
+    number::streaming::double,
     sequence::{delimited, preceded, separated_pair, terminated},
     IResult,
 };
-use crate::JsonValue;
+use std::collections::HashMap;
+use std::str::from_utf8;
 
 pub fn sp_trn(input: &[u8]) -> IResult<&[u8], &[u8], ()> {
     let chars = b" \t\r\n";
 
     take_while(move |c: u8| chars.contains(&c))(input)
-} 
+}
 pub fn null(input: &[u8]) -> IResult<&[u8], (), ()> {
     value((), tag("null"))(input)
 }
 
 pub fn boolean(input: &[u8]) -> IResult<&[u8], bool, ()> {
-    alt((
-        value(true, tag("true")),
-        value(false, tag("false")),
-    ))(input)
+    alt((value(true, tag("true")), value(false, tag("false"))))(input)
 }
 
 pub fn parse_str(input: &[u8]) -> IResult<&[u8], &[u8], ()> {
@@ -47,42 +44,35 @@ pub fn string_old(input: &[u8]) -> IResult<&[u8], &str, ()> {
 pub fn parse_literal(input: &[u8]) -> IResult<&[u8], &str, ()> {
     println!("parse_literal: input={:?}", input);
     let not_quote_slash = is_not("\"\\");
-    let res = verify(
-        map_res(not_quote_slash, |s| from_utf8(s)),
-        |s: &str| !s.is_empty()
-    )(input);
+    let res = verify(map_res(not_quote_slash, |s| from_utf8(s)), |s: &str| {
+        !s.is_empty()
+    })(input);
     // let res = map_res(parse_str, |s| from_utf8(s))(input);
     println!("parse_literal: res={:?}", res);
     res
 }
 
-#[derive(Debug,Copy,Clone,PartialEq,Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum StringFragment<'a> {
     Literal(&'a str),
 }
 
 pub fn parse_fragment<'a>(input: &'a [u8]) -> IResult<&[u8], StringFragment<'a>, ()> {
     println!("parse_fragment: input={:?}", input);
-    let res = alt((
-        map(parse_literal, StringFragment::Literal),
-    ))(input);
+    let res = alt((map(parse_literal, StringFragment::Literal),))(input);
     println!("parse_fragment: res={:?}", res);
     res
 }
 pub fn string(input: &[u8]) -> IResult<&[u8], String, ()> {
     println!("string2: input={:?}", input);
-    let build_string = fold_many0(
-        parse_fragment,
-        String::new,
-        |mut string, fragment| {
-            println!("string2: fragment={:?}", fragment);
-            match fragment {
-                StringFragment::Literal(s) => string.push_str(s),
-            }
-            println!("string2: string={:?}", &string);
-            string
-        },
-    );
+    let build_string = fold_many0(parse_fragment, String::new, |mut string, fragment| {
+        println!("string2: fragment={:?}", fragment);
+        match fragment {
+            StringFragment::Literal(s) => string.push_str(s),
+        }
+        println!("string2: string={:?}", &string);
+        string
+    });
 
     let res = delimited(char('\"'), build_string, char('\"'))(input);
     println!("string2: res={:?}", res);
@@ -90,7 +80,7 @@ pub fn string(input: &[u8]) -> IResult<&[u8], String, ()> {
 }
 
 pub fn root(input: &[u8]) -> IResult<&[u8], JsonValue, ()> {
-    map(null,|_| JsonValue::Null)(input)
+    map(null, |_| JsonValue::Null)(input)
 }
 
 pub fn array_item(input: &[u8]) -> IResult<&[u8], JsonValue, ()> {
@@ -101,9 +91,7 @@ pub fn array_8(input: &[u8]) -> IResult<&[u8], Vec<JsonValue>, ()> {
     array_empty(input)
 }
 
-pub fn array_empty(
-    input: &[u8]
-) -> IResult<&[u8], Vec<JsonValue>, ()> {
+pub fn array_empty(input: &[u8]) -> IResult<&[u8], Vec<JsonValue>, ()> {
     map(tag("[]"), |_| Vec::new())(input)
 }
 
@@ -113,9 +101,7 @@ pub fn array(input: &[u8]) -> IResult<&[u8], Vec<JsonValue>, ()> {
         preceded(
             char('['),
             cut(terminated(
-                separated_list0(
-                    preceded(sp_trn, char(',')), 
-                    preceded(sp_trn, json_value)),
+                separated_list0(preceded(sp_trn, char(',')), preceded(sp_trn, json_value)),
                 preceded(sp_trn, char(']')),
             )),
         ),
@@ -155,13 +141,13 @@ pub fn json_value(input: &[u8]) -> IResult<&[u8], JsonValue, ()> {
     preceded(
         sp_trn,
         alt((
-            map(null,|_| JsonValue::Null),
+            map(null, |_| JsonValue::Null),
             map(boolean, JsonValue::Bool),
             map(double, JsonValue::Num),
             map(string, |s| JsonValue::Str(String::from(s))),
             map(array, JsonValue::Array),
             map(hash, JsonValue::Object),
-        ))
+        )),
     )(input)
 }
 
@@ -185,15 +171,9 @@ mod tests {
             b"[null,\nnull\n]",
             vec![JsonValue::Null, JsonValue::Null]
         )]
-        fn valids(
-            #[case] input: &[u8],
-            #[case] expected: Vec<JsonValue>,
-        ) {
+        fn valids(#[case] input: &[u8], #[case] expected: Vec<JsonValue>) {
             println!("input: '{:?}", input);
-            assert_eq!(
-                array(input),
-                Ok((&b""[..], expected))
-            );
+            assert_eq!(array(input), Ok((&b""[..], expected)));
         }
 
         #[test]
@@ -203,13 +183,9 @@ mod tests {
             let expected_result = Ok((&b""[..], empty_vec));
             for input in &inputs {
                 println!("input: '{:?}'", input);
-            
-                assert_eq!(
-                    &array(input),
-                    &expected_result
-                );
+
+                assert_eq!(&array(input), &expected_result);
             }
-            
         }
 
         #[test]
@@ -220,16 +196,10 @@ mod tests {
                 &b"[null ]"[..],
                 &b"[ null ]"[..],
             ];
-            let expected_result = Ok((
-                &b""[..],
-                vec![JsonValue::Null]
-            ));
+            let expected_result = Ok((&b""[..], vec![JsonValue::Null]));
             for input in &inputs {
                 println!("input: '{:?}'", input);
-                assert_eq!(
-                    &array(input),
-                    &expected_result
-                );
+                assert_eq!(&array(input), &expected_result);
             }
         }
 
@@ -242,28 +212,18 @@ mod tests {
                 &b"[ null,null ]"[..],
                 &b"[ null\t,\nnull ]"[..],
             ];
-            let expected_result = Ok((
-                &b""[..],
-                vec![JsonValue::Null, JsonValue::Null]
-            ));
+            let expected_result = Ok((&b""[..], vec![JsonValue::Null, JsonValue::Null]));
             for input in &inputs {
                 println!("input: '{:?}'", input);
-                assert_eq!(
-                    &array(input),
-                    &expected_result
-                );
+                assert_eq!(&array(input), &expected_result);
             }
         }
 
         #[test]
         fn valid_arrays() {
-            let expected_vec: Vec<JsonValue> = vec![
-                JsonValue::Array(vec![JsonValue::Null]), 
-                JsonValue::Null];
-            assert_eq!(
-                array(&b"[[null],null]"[..]),
-                Ok((&b""[..], expected_vec))
-            );
+            let expected_vec: Vec<JsonValue> =
+                vec![JsonValue::Array(vec![JsonValue::Null]), JsonValue::Null];
+            assert_eq!(array(&b"[[null],null]"[..]), Ok((&b""[..], expected_vec)));
         }
     }
 
@@ -272,22 +232,11 @@ mod tests {
 
         #[test]
         fn valid_empty() {
-            let inputs = [
-                &b"{}"[..],
-                &b"{  }"[..],
-                &b"{\n}"[..],
-                &b"{\t}"[..],
-            ];
-            let expected_result = Ok((
-                &b""[..],
-                HashMap::new()
-            ));
+            let inputs = [&b"{}"[..], &b"{  }"[..], &b"{\n}"[..], &b"{\t}"[..]];
+            let expected_result = Ok((&b""[..], HashMap::new()));
             for input in &inputs {
                 println!("input: '{:?}'", input);
-                assert_eq!(
-                    &hash(input),
-                    &expected_result
-                );
+                assert_eq!(&hash(input), &expected_result);
             }
         }
 
@@ -304,16 +253,11 @@ mod tests {
             ];
             let expected_result = Ok((
                 &b""[..],
-                [(String::from("a"), JsonValue::Null)]
-                    .into_iter()
-                    .collect()
+                [(String::from("a"), JsonValue::Null)].into_iter().collect(),
             ));
             for input in &inputs {
                 println!("input: '{:?}'", input);
-                assert_eq!(
-                    &hash(input),
-                    &expected_result
-                );
+                assert_eq!(&hash(input), &expected_result);
             }
         }
     }
@@ -322,10 +266,7 @@ mod tests {
 
         #[test]
         fn valid_null() {
-            assert_eq!(
-                null(&b"null"[..]),
-                Ok((&b""[..], ()))
-            );
+            assert_eq!(null(&b"null"[..]), Ok((&b""[..], ())));
         }
     }
 
@@ -339,16 +280,9 @@ mod tests {
         #[case(b"\"\xE2\x82\xAC67\"", "€67")]
         #[case(b"\"hello world\"", "hello world")]
         #[case(b"\"+46 1234567\"", "+46 1234567")]
-        fn valids(
-            #[case] input: &[u8],
-            #[case] expected: String
-        ) {
+        fn valids(#[case] input: &[u8], #[case] expected: String) {
             println!("input: {:?}", input);
-            assert_eq!(
-                string(input),
-                Ok((&b""[..], expected))
-            );
-
+            assert_eq!(string(input), Ok((&b""[..], expected)));
         }
     }
 }

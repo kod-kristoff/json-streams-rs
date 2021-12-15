@@ -1,24 +1,20 @@
-
-use std::collections::HashMap;
-use std::io;
 use nom::{
     branch::alt,
-    bytes::streaming::{tag},
-    character::streaming::{char},
+    bytes::streaming::tag,
+    character::streaming::char,
     combinator::{map, value},
     sequence::{preceded, terminated},
     IResult,
 };
 use nom_bufreader::bufreader::BufReader;
-use nom_bufreader::{Parse};
+use nom_bufreader::Parse;
+use std::collections::HashMap;
+use std::io;
 
+use crate::parsers::streaming::{json_value, sp_trn};
 use crate::JsonValue;
-use crate::parsers::streaming::{
-    json_value, sp_trn,
-};
 
-
-pub fn load_from_read<R: 'static>(read: R) -> Box<dyn Iterator<Item=JsonValue>>
+pub fn load_from_read<R: 'static>(read: R) -> Box<dyn Iterator<Item = JsonValue>>
 where
     R: io::Read,
 {
@@ -28,7 +24,7 @@ where
     match reader.parse(root) {
         Ok(IterValue::JsonVal(val)) => Box::new(std::iter::once(val)),
         Ok(IterValue::ArrayBegin) => Box::new(JsonIterator::new(reader)),
-        _ => panic!("how to handle thid?")
+        _ => panic!("how to handle thid?"),
     }
 }
 
@@ -36,12 +32,14 @@ where
 pub struct JsonIterator<R> {
     reader: BufReader<R>,
     seen_last: bool,
-
 }
 
 impl<R> JsonIterator<R> {
     pub fn new(reader: BufReader<R>) -> Self {
-        Self { reader, seen_last: false }
+        Self {
+            reader,
+            seen_last: false,
+        }
     }
 }
 
@@ -63,12 +61,12 @@ where
             Ok(ArrayItem::LastItem(val)) => {
                 self.seen_last = true;
                 Some(val)
-            },
+            }
             Ok(ArrayItem::End) => None,
             Err(err) => {
                 log::error!("error: {:#?}", err);
                 None
-            },
+            }
         }
     }
 }
@@ -107,14 +105,14 @@ fn array_item(input: &[u8]) -> IResult<&[u8], ArrayItem, ()> {
         alt((
             map(
                 terminated(json_value, preceded(sp_trn, char(','))),
-                ArrayItem::Item
+                ArrayItem::Item,
             ),
             map(
                 terminated(json_value, preceded(sp_trn, char(']'))),
-                ArrayItem::LastItem
+                ArrayItem::LastItem,
             ),
             map(array_end, |_| ArrayItem::End),
-        ))
+        )),
     )(input)
 }
 
@@ -141,15 +139,9 @@ mod tests {
         #[case(b" null\n,", ArrayItem::Item(JsonValue::Null))]
         #[case(b"\nnull\t,", ArrayItem::Item(JsonValue::Null))]
         #[case(b"\tnull ,", ArrayItem::Item(JsonValue::Null))]
-        fn valids(
-            #[case] input: &[u8],
-            #[case] expected: ArrayItem,
-        ) {
+        fn valids(#[case] input: &[u8], #[case] expected: ArrayItem) {
             println!("input: {:?}", input);
-            assert_eq!(
-                array_item(input),
-                Ok((&b""[..], expected))
-            );
+            assert_eq!(array_item(input), Ok((&b""[..], expected)));
         }
     }
 }

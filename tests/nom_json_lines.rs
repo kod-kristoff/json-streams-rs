@@ -1,11 +1,5 @@
-use std::{
-    fs::File,
-    io::self,
-};
-use json_streams::{
-    json_lines::nom_json_lines::NomJsonLinesIterator,
-    JsonValue
-};
+use json_streams::{json_lines::nom_json_lines::NomJsonLinesIterator, JsonValue};
+use std::{fs::File, io};
 
 #[test]
 fn stream_json_from_file() {
@@ -38,5 +32,4 @@ fn stream_untyped_persons_from_file() {
         count += 1;
     }
     assert_eq!(count, 2);
-
 }

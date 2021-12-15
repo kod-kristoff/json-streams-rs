@@ -1,11 +1,8 @@
+use crate::{parsers::streaming::json_value, JsonValue};
 use std::{
     fs::File,
     io::{self, prelude::*},
-    rc::Rc
-};
-use crate::{
-    parsers::streaming::json_value,
-    JsonValue
+    rc::Rc,
 };
 
 pub struct NomJsonLinesIterator {
@@ -25,7 +22,6 @@ impl NomJsonLinesIterator {
         Ok(Self { reader, buf })
     }
 }
-
 
 impl Iterator for NomJsonLinesIterator {
     type Item = JsonValue;
@@ -47,29 +43,26 @@ impl Iterator for NomJsonLinesIterator {
         // self.reader
         //     .read_line(buf)
         //     .map(|u| if u == 0 { None } else { Some(Rc::clone(&self.buf)) })
-            // .transpose()
+        // .transpose()
         match self.reader.read_line(buffer) {
             Ok(n) if n > 0 => {
                 let row = Rc::clone(&self.buf);
                 match json_value(&row.as_bytes()) {
-                    Ok((rem,value)) => {
+                    Ok((rem, value)) => {
                         log::debug!("remaining: {:?}", rem);
                         Some(value)
-                    },
-                    Err(err) => panic!("error: {}", err)
-
+                    }
+                    Err(err) => panic!("error: {}", err),
                 }
-            },
-            _ => None
+            }
+            _ => None,
         }
-
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-
 
     #[test]
     fn create_json_lines_reader() {
@@ -81,7 +74,8 @@ mod tests {
         };
         let expected = JsonValue::Object(
             [(String::from("a"), JsonValue::Num(1.0))]
-            .into_iter().collect()
+                .into_iter()
+                .collect(),
         );
         for v in json_lines_reader {
             assert_eq!(v, expected);

@@ -1,9 +1,6 @@
-use std::{
-    fs::File,
-    io::self,
-};
 use json_streams::json_lines::serde_json_lines::JsonLinesReader;
 use serde_json::json;
+use std::{fs::File, io};
 
 #[test]
 fn stream_json_from_file() {
@@ -33,5 +30,4 @@ fn stream_untyped_persons_from_file() {
         count += 1;
     }
     assert_eq!(count, 2);
-
 }

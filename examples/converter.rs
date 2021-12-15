@@ -1,5 +1,5 @@
-use serde_json;
 use json_streams::json_lines::serde_json_lines::JsonLinesReader;
+use serde_json;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Begin");
@@ -8,4 +8,3 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
     Ok(())
 }
-
