@@ -1,7 +1,7 @@
 mod parsers;
 pub mod json_iter;
 mod json_value;
-// pub mod json_lines;
+pub mod json_lines;
 
 // pub use json_lines::JsonLinesReader;
 

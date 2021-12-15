@@ -5,8 +5,8 @@ use std::{
 };
 use serde_json::{Value, Error};
 
-pub struct JsonLinesReader<T> {
-    pub reader: T,
+pub struct JsonLinesReader {
+    pub reader: Box<dyn io::BufRead>,
     pub buf: Rc<String>,
 }
 
@@ -14,17 +14,17 @@ fn new_buf() -> Rc<String> {
     Rc::new(String::with_capacity(1024))
 }
 
-impl<T: io::BufRead> JsonLinesReader<T> {
+impl JsonLinesReader {
     pub fn open(path: impl AsRef<std::path::Path>) -> std::io::Result<Self> {
         let file = File::open(path)?;
-        let reader = io::BufReader::new(file);
+        let reader = Box::new(io::BufReader::new(file));
         let buf = new_buf();
         Ok(Self { reader, buf })
     }
 }
 
 
-impl<T: io::BufRead> Iterator for JsonLinesReader<T> {
+impl Iterator for JsonLinesReader {
     type Item = Value;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -71,7 +71,7 @@ mod tests {
         let data = "{\"a\":1}\n{\"a\":1}\n".as_bytes();
 
         let json_lines_reader = JsonLinesReader {
-            reader: io::BufReader::new(data),
+            reader: Box::new(io::BufReader::new(data)),
             buf: Default::default(),
         };
         let expected = json!({

@@ -2,18 +2,14 @@ use std::{
     fs::File,
     io::self,
 };
-use json_streams::json_lines;
+use json_streams::json_lines::JsonLinesReader;
 use serde_json::json;
 
 #[test]
 fn stream_json_from_file() {
-    let file = match File::open("data/test.jsonl") {
+    let reader = match JsonLinesReader::open("data/test.jsonl") {
         Err(why) => panic!("error: {}", why),
-        Ok(file) => file,
-    };
-    let reader = json_lines::JsonLinesReader {
-        reader: io::BufReader::new(file),
-        buf: Default::default(),
+        Ok(reader) => reader,
     };
     let mut count: i32 = 0;
 
@@ -26,13 +22,9 @@ fn stream_json_from_file() {
 
 #[test]
 fn stream_untyped_persons_from_file() {
-    let file = match File::open("data/persons.jsonl") {
+    let reader = match JsonLinesReader::open("data/persons.jsonl") {
         Err(why) => panic!("error: {}", why),
-        Ok(file) => file,
-    };
-    let reader = json_lines::JsonLinesReader {
-        reader: io::BufReader::new(file),
-        buf: Default::default(),
+        Ok(reader) => reader,
     };
     let mut count: i32 = 0;
 

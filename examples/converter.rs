@@ -4,11 +4,12 @@ use std::path::Path;
 use serde_json;
 use json_streams;
 
-fn main() {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Begin");
-    for obj in json_streams::json_lines::JsonLinesReader::open("data.jsonl") {
+    for obj in json_streams::json_lines::JsonLinesReader::open("data.jsonl")? {
         println!("{}", obj);
     }
+    Ok(())
 }
 
 fn read_lines<P>(file_name: P) -> io::Result<io::Lines<io::BufReader<fs::File>>>
