@@ -10,6 +10,7 @@ log = "0.4.14"
 nom = { version = "7", features = ["alloc"] }
 nom-bufreader = { git = "https://github.com/rust-bakery/nom-bufreader" }
 serde_json = "1.0.64"
+thiserror = "1.0.25"
 
 [dev-dependencies]
 rstest = "0.12"

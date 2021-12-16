@@ -8,11 +8,11 @@ use nom::{
 };
 use nom_bufreader::bufreader::BufReader;
 use nom_bufreader::Parse;
-use std::collections::HashMap;
+use std::fs;
 use std::io;
 
 use crate::parsers::streaming::{json_value, sp_trn};
-use crate::JsonValue;
+use crate::{Error, JsonValue};
 
 pub fn load_from_read<R: 'static>(read: R) -> Box<dyn Iterator<Item = JsonValue>>
 where
@@ -26,6 +26,12 @@ where
         Ok(IterValue::ArrayBegin) => Box::new(JsonIterator::new(reader)),
         _ => panic!("how to handle thid?"),
     }
+}
+
+pub fn load_from_file(
+    path: &str
+) -> Result<Box<dyn Iterator<Item=JsonValue>>, Error> {
+    Ok(load_from_read(fs::File::open(path)?))
 }
 
 // #[derive(Debug)]

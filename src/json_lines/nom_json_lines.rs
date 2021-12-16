@@ -21,6 +21,12 @@ impl NomJsonLinesIterator {
         let buf = new_buf();
         Ok(Self { reader, buf })
     }
+
+    pub fn from_bufreader(reader: Box<dyn io::BufRead>) -> Self {
+        eprintln!("called NomJsonLinesIterator::from_read");
+        let buf = new_buf();
+        Self { reader, buf }
+    }
 }
 
 impl Iterator for NomJsonLinesIterator {

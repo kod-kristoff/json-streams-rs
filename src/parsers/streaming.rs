@@ -42,13 +42,13 @@ pub fn string_old(input: &[u8]) -> IResult<&[u8], &str, ()> {
 }
 
 pub fn parse_literal(input: &[u8]) -> IResult<&[u8], &str, ()> {
-    println!("parse_literal: input={:?}", input);
+    log::trace!("parse_literal: input={:?}", input);
     let not_quote_slash = is_not("\"\\");
     let res = verify(map_res(not_quote_slash, |s| from_utf8(s)), |s: &str| {
         !s.is_empty()
     })(input);
     // let res = map_res(parse_str, |s| from_utf8(s))(input);
-    println!("parse_literal: res={:?}", res);
+    log::trace!("parse_literal: res={:?}", res);
     res
 }
 
@@ -58,41 +58,25 @@ pub enum StringFragment<'a> {
 }
 
 pub fn parse_fragment<'a>(input: &'a [u8]) -> IResult<&[u8], StringFragment<'a>, ()> {
-    println!("parse_fragment: input={:?}", input);
+    log::trace!("parse_fragment: input={:?}", input);
     let res = alt((map(parse_literal, StringFragment::Literal),))(input);
-    println!("parse_fragment: res={:?}", res);
+    log::trace!("parse_fragment: res={:?}", res);
     res
 }
 pub fn string(input: &[u8]) -> IResult<&[u8], String, ()> {
-    println!("string2: input={:?}", input);
+    log::trace!("string: input={:?}", input);
     let build_string = fold_many0(parse_fragment, String::new, |mut string, fragment| {
-        println!("string2: fragment={:?}", fragment);
+        log::trace!("string: fragment={:?}", fragment);
         match fragment {
             StringFragment::Literal(s) => string.push_str(s),
         }
-        println!("string2: string={:?}", &string);
+        log::trace!("string: string={:?}", &string);
         string
     });
 
     let res = delimited(char('\"'), build_string, char('\"'))(input);
-    println!("string2: res={:?}", res);
+    log::trace!("string2: res={:?}", res);
     res
-}
-
-pub fn root(input: &[u8]) -> IResult<&[u8], JsonValue, ()> {
-    map(null, |_| JsonValue::Null)(input)
-}
-
-pub fn array_item(input: &[u8]) -> IResult<&[u8], JsonValue, ()> {
-    json_value(input)
-}
-
-pub fn array_8(input: &[u8]) -> IResult<&[u8], Vec<JsonValue>, ()> {
-    array_empty(input)
-}
-
-pub fn array_empty(input: &[u8]) -> IResult<&[u8], Vec<JsonValue>, ()> {
-    map(tag("[]"), |_| Vec::new())(input)
 }
 
 pub fn array(input: &[u8]) -> IResult<&[u8], Vec<JsonValue>, ()> {
