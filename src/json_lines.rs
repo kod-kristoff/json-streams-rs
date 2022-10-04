@@ -1,9 +1,9 @@
+use serde_json::{Error, Value};
 use std::{
     fs::File,
     io::{self, prelude::*},
-    rc::Rc
+    rc::Rc,
 };
-use serde_json::{Value, Error};
 
 pub struct JsonLinesReader<T> {
     pub reader: T,
@@ -14,7 +14,7 @@ fn new_buf() -> Rc<String> {
     Rc::new(String::with_capacity(1024))
 }
 
-impl<T: io::BufRead> JsonLinesReader<T> {
+impl JsonLinesReader<io::BufReader<File>> {
     pub fn open(path: impl AsRef<std::path::Path>) -> std::io::Result<Self> {
         let file = File::open(path)?;
         let reader = io::BufReader::new(file);
@@ -22,7 +22,6 @@ impl<T: io::BufRead> JsonLinesReader<T> {
         Ok(Self { reader, buf })
     }
 }
-
 
 impl<T: io::BufRead> Iterator for JsonLinesReader<T> {
     type Item = Value;
@@ -44,19 +43,17 @@ impl<T: io::BufRead> Iterator for JsonLinesReader<T> {
         // self.reader
         //     .read_line(buf)
         //     .map(|u| if u == 0 { None } else { Some(Rc::clone(&self.buf)) })
-            // .transpose()
+        // .transpose()
         match self.reader.read_line(buffer) {
             Ok(n) if n > 0 => {
                 let row = Rc::clone(&self.buf);
                 match serde_json::from_str(&row) {
                     Ok(value) => Some(value),
-                    Err(err) => panic!("error: {}", err)
-
+                    Err(err) => panic!("error: {}", err),
                 }
-            },
-            _ => None
+            }
+            _ => None,
         }
-
     }
 }
 
@@ -64,7 +61,6 @@ impl<T: io::BufRead> Iterator for JsonLinesReader<T> {
 mod tests {
     use super::*;
     use serde_json::json;
-
 
     #[test]
     fn create_json_lines_reader() {
