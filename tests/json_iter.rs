@@ -24,8 +24,9 @@ fn stream_untyped_persons_from_file() {
     };
     let mut count: i32 = 0;
 
+    let expected = JsonValue::Num(43.0);
     for obj in load_from_read(file) {
-        // assert_eq!(obj["age"], 43);
+        assert_eq!(obj.as_object().unwrap()["age"], expected);
         count += 1;
     }
     assert_eq!(count, 2);

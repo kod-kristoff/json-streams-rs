@@ -11,6 +11,15 @@ pub enum JsonValue {
     Object(HashMap<String, JsonValue>),
 }
 
+impl JsonValue {
+    pub fn as_object(&self) -> Option<&HashMap<String, JsonValue>> {
+        match self {
+            Self::Object(map) => Some(map),
+            _ => None,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     #[test]
